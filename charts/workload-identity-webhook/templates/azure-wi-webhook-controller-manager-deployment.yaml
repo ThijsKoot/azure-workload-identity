@@ -34,6 +34,7 @@ spec:
         - --log-level={{ .Values.logLevel }}
         - --metrics-addr={{ .Values.metricsAddr }}
         - --metrics-backend={{ .Values.metricsBackend }}
+        {{- template "workload-identity-webhook.mutatingWebhook.imageArguments" . }}
         command:
         - /manager
         env:

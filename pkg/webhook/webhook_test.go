@@ -773,10 +773,11 @@ func TestHandle(t *testing.T) {
 			}
 
 			m := &podMutator{
-				client:  fake.NewClientBuilder().WithObjects(test.clientObjects...).Build(),
-				reader:  fake.NewClientBuilder().WithObjects(test.readerObjects...).Build(),
-				config:  &config.Config{TenantID: "tenantID"},
-				decoder: decoder,
+				client:      fake.NewClientBuilder().WithObjects(test.clientObjects...).Build(),
+				reader:      fake.NewClientBuilder().WithObjects(test.readerObjects...).Build(),
+				config:      &config.Config{TenantID: "tenantID"},
+				decoder:     decoder,
+				imageConfig: NewDefaultImageConfig(),
 			}
 
 			req := atypes.Request{
@@ -965,6 +966,7 @@ func TestMutateContainers(t *testing.T) {
 		config:             &config.Config{TenantID: azureTenantID},
 		decoder:            decoder,
 		azureAuthorityHost: azureAuthorityHost,
+		imageConfig:        NewDefaultImageConfig(),
 	}
 
 	for _, test := range tests {
@@ -1034,7 +1036,9 @@ func TestInjectProxyInitContainer(t *testing.T) {
 		},
 	}
 
-	m := &podMutator{}
+	m := &podMutator{
+		imageConfig: NewDefaultImageConfig(),
+	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			containers := m.injectProxyInitContainer(test.containers, proxyPort)
@@ -1137,7 +1141,9 @@ func TestInjectProxySidecarContainer(t *testing.T) {
 		},
 	}
 
-	m := &podMutator{}
+	m := &podMutator{
+		imageConfig: NewDefaultImageConfig(),
+	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			containers := m.injectProxySidecarContainer(test.containers, proxyPort)
@@ -1334,10 +1340,11 @@ func TestHandleError(t *testing.T) {
 			}
 
 			m := &podMutator{
-				client:  fake.NewClientBuilder().WithObjects(test.clientObjects...).Build(),
-				reader:  fake.NewClientBuilder().WithObjects().Build(),
-				config:  &config.Config{TenantID: "tenantID"},
-				decoder: decoder,
+				client:      fake.NewClientBuilder().WithObjects(test.clientObjects...).Build(),
+				reader:      fake.NewClientBuilder().WithObjects().Build(),
+				config:      &config.Config{TenantID: "tenantID"},
+				decoder:     decoder,
+				imageConfig: NewDefaultImageConfig(),
 			}
 
 			req := atypes.Request{

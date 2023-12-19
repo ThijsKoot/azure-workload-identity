@@ -49,6 +49,8 @@ var (
 	metricsBackend      string
 	logLevel            string
 
+	imageConfig = wh.NewDefaultImageConfig()
+
 	// DNSName is <service name>.<namespace>.svc
 	dnsName = fmt.Sprintf("%s.%s.svc", serviceName, util.GetNamespace())
 	scheme  = runtime.NewScheme()
@@ -78,6 +80,10 @@ func mainErr() error {
 	flag.StringVar(&metricsBackend, "metrics-backend", "prometheus", "Backend used for metrics")
 	flag.StringVar(&logLevel, "log-level", "",
 		"In order of increasing verbosity: unset (empty string), info, debug, trace and all.")
+	flag.StringVar(&imageConfig.SidecarRepository, "proxy-image", imageConfig.SidecarRepository, "Custom image to use for the injected proxy sidecar")
+	flag.StringVar(&imageConfig.SidecarTag, "proxy-image-tag", imageConfig.SidecarTag, "Custom tag to use for the injected proxy sidecar")
+	flag.StringVar(&imageConfig.InitRepository, "proxy-init-image", imageConfig.SidecarRepository, "Custom image to use for the injected proxy initcontainer")
+	flag.StringVar(&imageConfig.InitTag, "proxy-init-image tag", imageConfig.SidecarTag, "Custom tag to use for the injected proxy initcontainer")
 	flag.Parse()
 
 	ctx := signals.SetupSignalHandler()
@@ -160,7 +166,7 @@ func setupWebhook(mgr manager.Manager, setupFinished chan struct{}) {
 
 	// setup webhooks
 	entryLog.Info("registering webhook to the webhook server")
-	podMutator, err := wh.NewPodMutator(mgr.GetClient(), mgr.GetAPIReader(), audience)
+	podMutator, err := wh.NewPodMutator(mgr.GetClient(), mgr.GetAPIReader(), audience, imageConfig)
 	if err != nil {
 		panic(fmt.Errorf("unable to set up pod mutator: %w", err))
 	}

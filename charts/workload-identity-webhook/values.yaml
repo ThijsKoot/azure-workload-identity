@@ -30,10 +30,20 @@ logLevel: info
 metricsAddr: ":8095"
 metricsBackend: prometheus
 priorityClassName: system-cluster-critical
-mutatingWebhookAnnotations: {}
+
+mutatingWebhook:
+  annotations: {}
+  namespaceSelector: {}
+  images:
+    sidecar:
+      repository: ""
+      tag: ""
+    init:
+      repository: ""
+      tag: ""
+
 podLabels: {}
 podAnnotations: {}
-mutatingWebhookNamespaceSelector: {}
 # minAvailable and maxUnavailable are mutually exclusive
 podDisruptionBudget:
   minAvailable: 1

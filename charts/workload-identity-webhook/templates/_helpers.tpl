@@ -58,3 +58,15 @@ Adds the pod labels.
 {{- toYaml .Values.podLabels | nindent 8 }}
 {{- end }}
 {{- end }}
+
+{{- define "workload-identity-webhook.mutatingWebhook.imageArguments" -}}
+{{- with .Values.mutatingWebhook.images }}
+{{- if .sidecar.repository -}}
+- --proxy-image={{ .sidecar.repository }}
+- --proxy-tag={{ .sidecar.tag | default .Values.image.release }}
+{{- end -}}
+{{- if .init.repository }}
+- --proxy-init-image={{ .init.repository }}
+- --proxy-init-tag={{ .init.tag | default .Values.image.release }}
+{{- end -}}
+{{- end }}

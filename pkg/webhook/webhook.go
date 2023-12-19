@@ -49,10 +49,34 @@ type podMutator struct {
 	decoder            *admission.Decoder
 	audience           string
 	azureAuthorityHost string
+	imageConfig        ImageConfig
+}
+
+// NewDefaultImageConfig returns an ImageConfig with default values
+func NewDefaultImageConfig() ImageConfig {
+	return ImageConfig{
+		SidecarRepository: strings.Join([]string{ProxyImageRegistry, ProxySidecarImageName}, "/"),
+		SidecarTag:        ProxyImageVersion,
+		InitRepository:    strings.Join([]string{ProxyImageRegistry, ProxyInitImageName}, "/"),
+		InitTag:           ProxyImageVersion,
+	}
+}
+
+// ImageConfig describes the repositories and tags for the images injected in Pods
+type ImageConfig struct {
+	SidecarRepository string
+	SidecarTag        string
+	InitRepository    string
+	InitTag           string
 }
 
 // NewPodMutator returns a pod mutation handler
-func NewPodMutator(client client.Client, reader client.Reader, audience string) (admission.Handler, error) {
+func NewPodMutator(
+	client client.Client,
+	reader client.Reader,
+	audience string,
+	imageConfig ImageConfig,
+) (admission.Handler, error) {
 	c, err := config.ParseConfig()
 	if err != nil {
 		return nil, err
@@ -60,6 +84,7 @@ func NewPodMutator(client client.Client, reader client.Reader, audience string) 
 	if audience == "" {
 		audience = DefaultAudience
 	}
+
 	// this is used to configure the AZURE_AUTHORITY_HOST env var that's
 	// used by the azure sdk
 	azureAuthorityHost, err := getAzureAuthorityHost(c)
@@ -77,6 +102,7 @@ func NewPodMutator(client client.Client, reader client.Reader, audience string) 
 		config:             c,
 		audience:           audience,
 		azureAuthorityHost: azureAuthorityHost,
+		imageConfig:        imageConfig,
 	}, nil
 }
 
@@ -195,16 +221,15 @@ func (m *podMutator) mutateContainers(containers []corev1.Container, clientID st
 }
 
 func (m *podMutator) injectProxyInitContainer(containers []corev1.Container, proxyPort int32) []corev1.Container {
-	imageRepository := strings.Join([]string{ProxyImageRegistry, ProxyInitImageName}, "/")
 	for _, container := range containers {
-		if strings.HasPrefix(container.Image, imageRepository) || container.Name == ProxyInitContainerName {
+		if strings.HasPrefix(container.Image, m.imageConfig.InitRepository) || container.Name == ProxyInitContainerName {
 			return containers
 		}
 	}
 
 	containers = append(containers, corev1.Container{
 		Name:            ProxyInitContainerName,
-		Image:           strings.Join([]string{imageRepository, ProxyImageVersion}, ":"),
+		Image:           strings.Join([]string{m.imageConfig.InitRepository, m.imageConfig.InitTag}, ":"),
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: &corev1.SecurityContext{
 			Capabilities: &corev1.Capabilities{
@@ -225,9 +250,8 @@ func (m *podMutator) injectProxyInitContainer(containers []corev1.Container, pro
 }
 
 func (m *podMutator) injectProxySidecarContainer(containers []corev1.Container, proxyPort int32) []corev1.Container {
-	imageRepository := strings.Join([]string{ProxyImageRegistry, ProxySidecarImageName}, "/")
 	for _, container := range containers {
-		if strings.HasPrefix(container.Image, imageRepository) || container.Name == ProxySidecarContainerName {
+		if strings.HasPrefix(container.Image, m.imageConfig.SidecarRepository) || container.Name == ProxySidecarContainerName {
 			return containers
 		}
 	}
@@ -235,7 +259,7 @@ func (m *podMutator) injectProxySidecarContainer(containers []corev1.Container, 
 	logLevel := currentLogLevel() // run the proxy at the same log level as the webhook
 	containers = append([]corev1.Container{{
 		Name:            ProxySidecarContainerName,
-		Image:           strings.Join([]string{imageRepository, ProxyImageVersion}, ":"),
+		Image:           strings.Join([]string{m.imageConfig.SidecarRepository, m.imageConfig.SidecarTag}, ":"),
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Args: []string{
 			fmt.Sprintf("--proxy-port=%d", proxyPort),

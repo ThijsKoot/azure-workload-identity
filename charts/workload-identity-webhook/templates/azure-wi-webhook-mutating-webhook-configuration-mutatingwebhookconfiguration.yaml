@@ -2,7 +2,7 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
-    {{- toYaml .Values.mutatingWebhookAnnotations | nindent 4 }}
+    {{- toYaml .Values.mutatingWebhook.annotations | nindent 4 }}
   labels:
     app: '{{ template "workload-identity-webhook.name" . }}'
     azure-workload-identity.io/system: "true"
@@ -21,7 +21,7 @@ webhooks:
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: mutation.azure-workload-identity.io
-  namespaceSelector: {{- toYaml .Values.mutatingWebhookNamespaceSelector | nindent 4 }}
+  namespaceSelector: {{- toYaml .Values.mutatingWebhook.namespaceSelector | nindent 4 }}
   objectSelector:
     matchLabels:
       azure.workload.identity/use: "true"
